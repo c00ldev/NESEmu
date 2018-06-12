@@ -1,7 +1,7 @@
 #include "nes.h"
 
 NES::NES()
-	: clock(21477272, 0.5)
+	: clock(21477272)
 	, cpu(mmu)
 	, ram(0x800)
 	, mmu()
