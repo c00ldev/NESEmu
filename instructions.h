@@ -18,5 +18,6 @@ void OP_LSR(uint8_t & AM, uint8_t & P);
 void OP_ORA(uint8_t & A, uint8_t M, uint8_t & P);
 void OP_ROL(uint8_t & AM, uint8_t & P);
 void OP_ROR(uint8_t & AM, uint8_t & P);
+void OP_SBC(uint8_t & A, uint8_t M, uint8_t & P);
 
 }

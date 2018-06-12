@@ -116,3 +116,13 @@ OP_ROR:
 .sk:	ror	byte [rcx], 1
 	FLAGS_UPD	[rdx], (C | Z | N)
 	ret
+
+global	OP_SBC
+OP_SBC:
+	clc
+	test	byte [r8], C
+	jz	.sk
+	stc
+.sk:	sbb	[rcx], dl
+	FLAGS_UPD	[r8], (C | Z | V | N)
+	ret

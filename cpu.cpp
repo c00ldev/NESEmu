@@ -629,7 +629,31 @@ void CPU::tick()
 		OP_LD(X, S, P);
 		break;
 
-		// TODO: SBC
+		// SBC
+	case 0xE1:
+		OP_SBC(A, memory.read(xind()), P);
+		break;
+	case 0xE5:
+		OP_SBC(A, memory.read(zp()), P);
+		break;
+	case 0xE9:
+		OP_SBC(A, imm(), P);
+		break;
+	case 0xED:
+		OP_SBC(A, memory.read(abs()), P);
+		break;
+	case 0xF1:
+		OP_SBC(A, memory.read(indy()), P);
+		break;
+	case 0xF5:
+		OP_SBC(A, memory.read(zpx()), P);
+		break;
+	case 0xF9:
+		OP_SBC(A, memory.read(absy()), P);
+		break;
+	case 0xFD:
+		OP_SBC(A, memory.read(absx()), P);
+		break;
 
 	default:
 		break;
