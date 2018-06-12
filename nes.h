@@ -5,6 +5,8 @@
 #include "cpu.h"
 #include "mmu.h"
 
+#include "nrom.h"
+
 class NES
 {
 public:
@@ -13,6 +15,9 @@ public:
 	RAM ram;
 	CPU cpu;
 	MMU mmu;
+
+	NROM * nrom;
 public:
 	NES();
+	void setROM(NROM * nrom1);
 };
