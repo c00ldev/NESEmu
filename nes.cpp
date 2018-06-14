@@ -8,10 +8,4 @@ NES::NES()
 {
 	clock.addHandler(12, cpu);
 	mmu.map(0x0000, ram);
-	mmu.map(0x8000, nrom->getPRGROM());
-}
-
-void NES::setROM(NROM * nrom1)
-{
-	nrom = nrom1;
 }
