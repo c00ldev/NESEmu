@@ -4,6 +4,7 @@
 #include "ram.h"
 #include "cpu.h"
 #include "mmu.h"
+#include "ppu.h"
 
 class NES
 {
@@ -13,6 +14,8 @@ public:
 	RAM ram;
 	CPU cpu;
 	MMU mmu;
+	PPU ppu;
 public:
 	NES();
+	void start();
 };

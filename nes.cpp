@@ -8,4 +8,10 @@ NES::NES()
 {
 	clock.addHandler(12, cpu);
 	mmu.map(0x0000, ram);
+	mmu.map(0x2000, ppu.getRegs());
+}
+
+void NES::start()
+{
+	clock.start();
 }

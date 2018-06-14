@@ -20,6 +20,7 @@ private:
 	std::forward_list<std::tuple<size_t, Tickable &>> handlers;
 public:
 	Clock(long double frequency, double dutyCycle = 0.5);
+	void start();
 	bool run();
 	void addHandler(size_t onTick, Tickable & object);
 public:

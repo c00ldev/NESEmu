@@ -2,6 +2,8 @@
 
 #include <thread>
 
+#include <iostream>
+
 Clock::Clock(long double frequency, double dutyCycle)
 	: clock()
 	, period(1.0 / frequency)
@@ -27,6 +29,7 @@ bool Clock::run()
 
 void Clock::tick()
 {
+	std::cout << "Tick" << "\n";
 }
 
 void Clock::tick_down()
@@ -36,4 +39,13 @@ void Clock::tick_down()
 void Clock::addHandler(size_t onTick, Tickable & object)
 {
 	handlers.emplace_front(onTick, object);
+}
+
+void Clock::start()
+{
+	std::thread th([&] () {
+		while (run())
+			;
+	});
+	th.detach();
 }
