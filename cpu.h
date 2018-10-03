@@ -38,7 +38,7 @@ class CPU : public Tickable
 			bool N : 1;
 		};
 	};
-
+//	std::queue
 	size_t cycles;
 public:
 	CPU(Memory & memory);

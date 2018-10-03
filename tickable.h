@@ -3,6 +3,6 @@
 class Tickable
 {
 public:
-	virtual void tick() {};
-	virtual void tick_down() {};
+	virtual ~Tickable() = default;
+	virtual void tick() {}
 };

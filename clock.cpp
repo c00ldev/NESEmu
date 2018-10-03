@@ -1,51 +1,42 @@
 #include "clock.h"
 
+#include <chrono>
 #include <thread>
+#include <cmath>
 
-#include <iostream>
 
-Clock::Clock(long double frequency, double dutyCycle)
-	: clock()
-	, period(1.0 / frequency)
-	, dutyCycle(dutyCycle)
+Clock::Clock(long double frequency)
+	: period(1.0 / frequency)
 {
-	addHandler(1, *this);
-}
 
-bool Clock::run()
-{
-	clock_type::time_point start = clock_type::now();
-	std::chrono::duration<long double, std::ratio<1>> duration(period);
-	for (const auto & [t, obj] : handlers)
-		if (ticks % t == 0)
-			obj.tick();
-	std::this_thread::sleep_until(start + std::chrono::duration_cast<clock_type::duration>(duration * dutyCycle));
-	for (const auto & [t, obj] : handlers)
-		if (ticks % t == 0)
-			obj.tick_down();
-	std::this_thread::sleep_until(start + std::chrono::duration_cast<clock_type::duration>(duration));
-	return true;
 }
 
 void Clock::tick()
 {
-	std::cout << "Tick" << "\n";
+	for (auto & [t, tickable] : handlers)
+		if (ticks % t == 0)
+			tickable.tick();
+	++ticks;
 }
 
-void Clock::tick_down()
+void Clock::run()
 {
+	using clock_type = std::chrono::high_resolution_clock;
+	clock_type::time_point start = clock_type::now();
+	tick();
+	std::this_thread::sleep_until(start + std::chrono::duration_cast<clock_type::duration>(std::chrono::duration<long double, std::ratio<1, 1>>(period)));
 }
 
-void Clock::addHandler(size_t onTick, Tickable & object)
+void Clock::addHandler(Tickable & tickable, size_t onTick)
 {
-	handlers.emplace_front(onTick, object);
+	handlers.emplace_back(onTick, tickable);
 }
 
-void Clock::start()
+void Clock::addHandler(long double freq, Tickable & tickable)
 {
-	std::thread th([&] () {
-		while (run())
-			;
-	});
-	th.detach();
+	long double per = 1.0 / freq;
+	auto onTick = (size_t)std::round(per / period);
+	if (onTick == 0)
+		++onTick;
+	addHandler(tickable, onTick);
 }

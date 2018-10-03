@@ -2,6 +2,8 @@
 
 #include "instructions.h"
 
+#include <queue>
+
 CPU::CPU(Memory & memory)
 	: memory(memory)
 	, A(0)
@@ -690,13 +692,13 @@ uint16_t CPU::zp()
 uint16_t CPU::zpx()
 {
 	cycles += 2;
-	return memory.read(PC++) + X;
+	return uint8_t(memory.read(PC++) + X);
 }
 
 uint16_t CPU::zpy()
 {
 	cycles += 2;
-	return memory.read(PC++) + Y;
+	return uint8_t(memory.read(PC++) + Y);
 }
 
 uint16_t CPU::rel()

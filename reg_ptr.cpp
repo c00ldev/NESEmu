@@ -20,7 +20,7 @@ uint8_t RegPtr::write(uint16_t addr, uint8_t val)
 
 uint8_t RegPtr::write(uint16_t addr, uint8_t val) const
 {
-	return reg[addr % size_];
+	return read(addr);
 }
 
 size_t RegPtr::size() const

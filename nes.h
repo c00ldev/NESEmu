@@ -3,8 +3,9 @@
 #include "clock.h"
 #include "ram.h"
 #include "cpu.h"
-#include "mmu.h"
 #include "ppu.h"
+#include "mem_bus.h"
+#include "cartridge_slot.h"
 
 class NES
 {
@@ -13,9 +14,13 @@ public:
 
 	RAM ram;
 	CPU cpu;
-	MMU mmu;
 	PPU ppu;
+
+	MemBus mem;
+
+	CartridgeSlot cartridgeSlot;
 public:
 	NES();
-	void start();
+	void run();
+	void setCartridge(Cartridge * cartridge);
 };

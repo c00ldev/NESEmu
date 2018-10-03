@@ -5,11 +5,11 @@
 #include <list>
 #include <utility>
 
-class MMU : public Memory
+class MemMap : public Memory
 {
 	std::list<std::pair<uint16_t, Memory &>> map_;
 public:
-	~MMU() override = default;
+	~MemMap() override = default;
 	uint8_t read(uint16_t addr) const override;
 	uint8_t write(uint16_t addr, uint8_t val) override;
 	uint8_t write(uint16_t addr, uint8_t val) const override;

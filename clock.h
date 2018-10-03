@@ -2,28 +2,19 @@
 
 #include "tickable.h"
 
-#include <chrono>
-#include <forward_list>
-#include <functional>
-#include <tuple>
+#include <list>
+#include <utility>
+#include <cstddef>
 
-class Clock : public Tickable
+class Clock
 {
-	using clock_type = std::chrono::steady_clock;
-	clock_type clock;
+	std::list<std::pair<size_t, Tickable &>> handlers;
 	long double period;
-	double dutyCycle;
 	size_t ticks;
 public:
-	using fn_type = std::function<void(Tickable &)>;
-private:
-	std::forward_list<std::tuple<size_t, Tickable &>> handlers;
-public:
-	Clock(long double frequency, double dutyCycle = 0.5);
-	void start();
-	bool run();
-	void addHandler(size_t onTick, Tickable & object);
-public:
-	void tick() override;
-	void tick_down() override;
+	Clock(long double frequency);
+	void tick();
+	void run();
+	void addHandler(Tickable & tickable, size_t onTick = 1u);
+	void addHandler(long double freq, Tickable & tickable);
 };

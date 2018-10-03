@@ -2,16 +2,24 @@
 
 NES::NES()
 	: clock(21477272)
-	, cpu(mmu)
 	, ram(0x800)
-	, mmu()
+	, cpu(mem)
+	, ppu()
+	, mem(ram, ppu.getRegs(), ram, cartridgeSlot, cartridgeSlot)
+	, cartridgeSlot(nullptr)
 {
-	clock.addHandler(12, cpu);
-	mmu.map(0x0000, ram);
-	mmu.map(0x2000, ppu.getRegs());
+	clock.addHandler(cpu, 12);
+//	mmu.map(0x0000, ram);
+//	mmu.map(0x2000, ppu.getRegs());
+//	mmu.map(0x4020, cartridgeSlot);
 }
 
-void NES::start()
+void NES::run()
 {
-	clock.start();
+	clock.run();
+}
+
+void NES::setCartridge(Cartridge * cartridge)
+{
+	cartridgeSlot.setCartridge(cartridge);
 }
