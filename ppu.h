@@ -1,13 +1,11 @@
 #pragma once
 
-#include "tickable.h"
-
 #include <cstdint>
 
 #include "reg_ptr.h"
 #include "ram.h"
 
-class PPU : public Tickable
+class PPU
 {
 	Memory & memory;
 

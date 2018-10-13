@@ -1,7 +1,5 @@
 #pragma once
 
-#include "tickable.h"
-
 #include <cstdint>
 #include <cstddef>
 
@@ -10,7 +8,7 @@
 #include <chrono>
 using clock_type = std::chrono::high_resolution_clock;
 
-class CPU : public Tickable
+class CPU
 {
 	Memory & memory;
 
@@ -46,7 +44,7 @@ class CPU : public Tickable
 	clock_type::time_point start;
 public:
 	explicit CPU(Memory & memory);
-	void tick() override;
+	void tick();
 private:
 	void impl();
 	uint8_t imm();

@@ -27,7 +27,7 @@ int main()
 //	}
 
 	while (true)
-		nes.cpu.tick();
+		nes.run();
 
 //	uint8_t a = nes.mmu.read(0x4020);
 //	nes.mmu.read(0x6000);
