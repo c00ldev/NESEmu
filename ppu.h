@@ -1,11 +1,16 @@
 #pragma once
 
+#include "tickable.h"
+
 #include <cstdint>
 
 #include "reg_ptr.h"
+#include "ram.h"
 
-class PPU
+class PPU : public Tickable
 {
+	Memory & memory;
+
 	union
 	{
 		uint8_t PPUCTRL;
@@ -45,7 +50,9 @@ class PPU
 	};
 
 	RegPtr regs1;
+
+	RAM OAM;
 public:
-	PPU();
+	explicit PPU(Memory & memory);
 	Memory & getRegs();
 };

@@ -17,10 +17,12 @@ public:
 	PPU ppu;
 
 	MemBus mem;
+	VMemBus vmem;
 
 	CartridgeSlot cartridgeSlot;
 public:
 	NES();
+	void powerUp();
 	void run();
 	void setCartridge(Cartridge * cartridge);
 };

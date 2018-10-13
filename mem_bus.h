@@ -19,3 +19,22 @@ public:
 	size_t size() const override;
 	std::pair<Memory &, uint16_t> resolve(uint16_t addr) const;
 };
+
+class VMemBus : public Memory
+{
+	Memory & patternTable0;
+	Memory & patternTable1;
+	Memory & nameTable0;
+	Memory & nameTable1;
+	Memory & nameTable2;
+	Memory & nameTable3;
+	Memory & palette;
+public:
+	VMemBus(Memory & patternTable0, Memory & patternTable1, Memory & nameTable0, Memory & nameTable1,
+			Memory & nameTable2, Memory & nameTable3, Memory & palette);
+	uint8_t read(uint16_t addr) const override;
+	uint8_t write(uint16_t addr, uint8_t val) override;
+	uint8_t write(uint16_t addr, uint8_t val) const override;
+	size_t size() const override;
+	std::pair<Memory &, uint16_t> resolve(uint16_t addr) const;
+};

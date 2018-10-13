@@ -12,7 +12,7 @@ class Clock
 	long double period;
 	size_t ticks;
 public:
-	Clock(long double frequency);
+	explicit Clock(long double frequency);
 	void tick();
 	void run();
 	void addHandler(Tickable & tickable, size_t onTick = 1u);

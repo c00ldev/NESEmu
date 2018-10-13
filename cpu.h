@@ -7,6 +7,9 @@
 
 #include "memory.h"
 
+#include <chrono>
+using clock_type = std::chrono::high_resolution_clock;
+
 class CPU : public Tickable
 {
 	Memory & memory;
@@ -40,8 +43,9 @@ class CPU : public Tickable
 	};
 //	std::queue
 	size_t cycles;
+	clock_type::time_point start;
 public:
-	CPU(Memory & memory);
+	explicit CPU(Memory & memory);
 	void tick() override;
 private:
 	void impl();
@@ -62,4 +66,6 @@ private:
 
 	void pushw(uint16_t val);
 	uint16_t pullw();
+public:
+	void powerUp();
 };

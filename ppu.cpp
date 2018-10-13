@@ -1,8 +1,9 @@
 #include "ppu.h"
 
 
-PPU::PPU()
-	: PPUCTRL(0)
+PPU::PPU(Memory & memory)
+	: memory(memory)
+	, PPUCTRL(0)
 	, PPUMASK(0)
 	, PPUSTATUS(0)
 	, OAMADDR(0)
@@ -12,6 +13,7 @@ PPU::PPU()
 	, PPUDATA(0)
 	, OAMDMA(0)
 	, regs1(&PPUCTRL, 8)
+	, OAM(0x100)
 {
 }
 

@@ -101,8 +101,6 @@ class iNES
 		uint8_t reserved;
 	} header;
 	std::vector<uint8_t> trainer;
-	std::vector<uint8_t> PRG_ROM;
-	std::vector<uint8_t> CHR_ROM;
 //	std::vector<uint8_t> INST_ROM;
 //	std::vector<uint8_t> PROM;
 //	std::vector<uint8_t> title;
