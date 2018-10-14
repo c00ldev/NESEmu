@@ -2,6 +2,14 @@
 
 #include "memory.h"
 
+enum class Mirroring
+{
+	Horizontal,
+	Vertical,
+	SingleScreen,
+	FourScreen
+};
+
 class Cartridge
 {
 public:

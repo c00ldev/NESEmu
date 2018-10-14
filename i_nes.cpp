@@ -46,7 +46,7 @@ void iNES::load(const std::string & is)
 	{
 	case 0:
 	{
-		auto * nrom = new NROM(NROM::Type(prgROM_size));
+		auto * nrom = new NROM<Mirroring::Vertical>(NROM<Mirroring::Vertical>::Type(prgROM_size));
 		nrom->load(std::move(PRG_ROM), std::move(CHR_ROM));
 		cartridge = nrom;
 		break;

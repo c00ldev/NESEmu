@@ -6,7 +6,13 @@
 #include <vector>
 #include <cstdint>
 
-class NROM : public Cartridge
+template<Mirroring mirroring>
+class NROM
+{
+};
+
+template<>
+class NROM<Mirroring::Vertical> : public Cartridge
 {
 	ROM PRG_ROM;
 	RAM PRG_RAM;
