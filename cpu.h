@@ -66,4 +66,5 @@ private:
 	uint16_t pullw();
 public:
 	void powerUp();
+	size_t getCycleCount();
 };

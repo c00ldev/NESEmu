@@ -13,13 +13,15 @@ public:
 	Clock clock;
 
 	RAM ram;
+	RAM vram;
+
 	CPU cpu;
 	PPU ppu;
 
+	CartridgeSlot cartridgeSlot;
+
 	MemBus mem;
 	VMemBus vmem;
-
-	CartridgeSlot cartridgeSlot;
 public:
 	NES();
 	void powerUp();

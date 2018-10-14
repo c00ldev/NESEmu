@@ -1004,3 +1004,8 @@ void CPU::powerUp()
 	PCL = memory.read(0xFFFC);
 	PCH = memory.read(0xFFFD);
 }
+
+size_t CPU::getCycleCount()
+{
+	return 1;
+}

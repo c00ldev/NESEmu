@@ -3,6 +3,7 @@
 
 PPU::PPU(Memory & memory)
 	: memory(memory)
+	, palettes(0x20)
 	, PPUCTRL(0)
 	, PPUMASK(0)
 	, PPUSTATUS(0)
@@ -20,4 +21,9 @@ PPU::PPU(Memory & memory)
 Memory & PPU::getRegs()
 {
 	return regs1;
+}
+
+Memory & PPU::getPalettes()
+{
+	return palettes;
 }

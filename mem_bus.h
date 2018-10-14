@@ -22,15 +22,14 @@ public:
 
 class VMemBus : public Memory
 {
-	Memory & patternTable0;
-	Memory & patternTable1;
+	Memory & patternTables;
 	Memory & nameTable0;
 	Memory & nameTable1;
 	Memory & nameTable2;
 	Memory & nameTable3;
 	Memory & palette;
 public:
-	VMemBus(Memory & patternTable0, Memory & patternTable1, Memory & nameTable0, Memory & nameTable1,
+	VMemBus(Memory & patternTables, Memory & nameTable0, Memory & nameTable1,
 			Memory & nameTable2, Memory & nameTable3, Memory & palette);
 	uint8_t read(uint16_t addr) const override;
 	uint8_t write(uint16_t addr, uint8_t val) override;

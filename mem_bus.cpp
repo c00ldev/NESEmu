@@ -58,10 +58,9 @@ std::pair<Memory &, uint16_t> MemBus::resolve(uint16_t addr) const
 
 
 
-VMemBus::VMemBus(Memory & patternTable0, Memory & patternTable1, Memory & nameTable0, Memory & nameTable1,
+VMemBus::VMemBus(Memory & patternTables, Memory & nameTable0, Memory & nameTable1,
 				 Memory & nameTable2, Memory & nameTable3, Memory & palette)
-	: patternTable0(patternTable0)
-	, patternTable1(patternTable1)
+	: patternTables(patternTables)
 	, nameTable0(nameTable0)
 	, nameTable1(nameTable1)
 	, nameTable2(nameTable2)
@@ -98,9 +97,9 @@ std::pair<Memory &, uint16_t> VMemBus::resolve(uint16_t addr) const
 	switch ((addr & uint16_t(0b11u << 12u)) >> 12u)
 	{
 	case 0b00:
-		return std::pair(std::ref(patternTable0), addr & uint16_t(0b1111'1111'1111u));
+		return std::pair(std::ref(patternTables), addr & uint16_t(0b1'1111'1111'1111u));	// TODO: Check
 	case 0b01:
-		return std::pair(std::ref(patternTable1), addr & uint16_t(0b1111'1111'1111u));
+		return std::pair(std::ref(patternTables), addr & uint16_t(0b1'1111'1111'1111u));	// TODO: Check
 	case 0b11:
 		if ((addr & uint16_t(0b1111u << 8u)) >> 8u == 0b1111u)
 			return std::pair(std::ref(palette), addr & uint16_t(0b1'1111u));
@@ -118,9 +117,9 @@ std::pair<Memory &, uint16_t> VMemBus::resolve(uint16_t addr) const
 		case 0b11:
 			return std::pair(std::ref(nameTable3), addr & uint16_t(0b11'1111'1111u));
 		default:
-			return std::pair(std::ref(patternTable0), 0);
+			return std::pair(std::ref(patternTables), 0);
 		}
 	default:
-		return std::pair(std::ref(patternTable0), 0);
+		return std::pair(std::ref(patternTables), 0);
 	}
 }

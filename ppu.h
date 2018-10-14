@@ -9,6 +9,8 @@ class PPU
 {
 	Memory & memory;
 
+	ROM palettes;
+
 	union
 	{
 		uint8_t PPUCTRL;
@@ -53,4 +55,5 @@ class PPU
 public:
 	explicit PPU(Memory & memory);
 	Memory & getRegs();
+	Memory & getPalettes();
 };
