@@ -13,6 +13,7 @@ enum class Mirroring
 class Cartridge
 {
 public:
+	virtual ~Cartridge() = default;
 	virtual Memory & getPRG() = 0;
 	virtual Memory & getCHR() = 0;
 	virtual Memory & getEXP() = 0;
