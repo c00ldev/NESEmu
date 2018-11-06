@@ -3,34 +3,45 @@
 #include "null_memory.h"
 
 NES::NES()
-	: clock(21.477272_MHz)
+	: ctrl()
+	, clock(21.477272_MHz)
+	, bus()
+	, vbus()
 	, ram(0x800)
 	, vram(0x800)
-	, cpu(mem)
-	, ppu(vmem)
+	, cpu(ctrl, bus)
 	, cartridgeSlot()
-	, mem(ram, ppu.getRegs(), ram, cartridgeSlot.getPRG(), cartridgeSlot.getEXP())
-	, vmem(cartridgeSlot.getCHR(), NullMemory::nullMemory, NullMemory::nullMemory, NullMemory::nullMemory, NullMemory::nullMemory, ppu.getPalettes())
 {
 	clock.addHandler(12, [this]{ cpu.tick(); });
-//	clock.addHandler(4, [this]{ ppu.tick(); });
-//	mmu.map(0x0000, ram);
-//	mmu.map(0x2000, ppu.getRegs());
-//	mmu.map(0x4020, cartridgeSlot);
-}
-
-void NES::powerUp()
-{
-	cpu.powerUp();
+	clock.addHandler(12, [this]{ memMap(); vmemMap(); });
 }
 
 void NES::run()
 {
-	size_t count = cpu.getCycleCount();
-	clock.cycle(12 * count);
+	clock.cycle();
 }
 
 void NES::setCartridge(Cartridge * cartridge)
 {
 	cartridgeSlot.setCartridge(cartridge);
+}
+
+void NES::memMap()
+{
+	if (!bus.enable)
+		return;
+	if (bus.write)
+		ram.write(bus.address, bus.data);
+	else
+		bus.data = ram.read(bus.address);
+}
+
+void NES::vmemMap()
+{
+	if (!vbus.enable)
+		return;
+	if (vbus.write)
+		vram.write(vbus.address, vbus.data);
+	else
+		vbus.data = vram.read(vbus.address);
 }

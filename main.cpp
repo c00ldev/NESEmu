@@ -8,11 +8,10 @@
 int main()
 {
 	NES nes;
-	iNES rom;
-	rom.load("M:\\Downloads\\NES Tests\\nestest.nes");
-	Cartridge * cartridge = rom.getCartridge();
-	nes.setCartridge(cartridge);
-	nes.powerUp();
+//	iNES rom;
+//	rom.load("M:\\Downloads\\NES Tests\\nestest.nes");
+//	Cartridge * cartridge = rom.getCartridge();
+//	nes.setCartridge(cartridge);
 //	std::cout << std::hex << std::setfill('0') << std::uppercase;
 //	std::cin >> std::hex;
 //	for (uint16_t addr = 0; (size_t)addr < 0x10000; addr += 0x10)

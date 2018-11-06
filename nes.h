@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ctrl_bus.h"
 #include "clock.h"
 #include "ram.h"
 #include "cpu.h"
@@ -10,21 +11,25 @@
 class NES
 {
 public:
+	CtrlBus ctrl;
+
 	Clock clock;
+
+	MemBus bus;
+	MemBus vbus;
 
 	RAM ram;
 	RAM vram;
 
 	CPU cpu;
-	PPU ppu;
+	//PPU ppu;
 
 	CartridgeSlot cartridgeSlot;
-
-	MemBus mem;
-	VMemBus vmem;
 public:
 	NES();
 	void powerUp();
 	void run();
 	void setCartridge(Cartridge * cartridge);
+	void memMap();
+	void vmemMap();
 };

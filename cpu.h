@@ -2,15 +2,17 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <queue>
 
-#include "memory.h"
+#include "instruction_decoder.h"
 
-#include <chrono>
-using clock_type = std::chrono::high_resolution_clock;
+class CtrlBus;
+class MemBus;
 
 class CPU
 {
-	Memory & memory;
+	CtrlBus & ctrl;
+	MemBus & bus;
 
 	uint8_t A;
 	uint8_t X, Y;
@@ -39,32 +41,28 @@ class CPU
 			bool N : 1;
 		};
 	};
-//	std::queue
-	size_t cycles;
-	clock_type::time_point start;
+	uint16_t opcode;
+	unsigned addr;
+	unsigned d;
+	unsigned t;
+	unsigned c;
+	unsigned sb;
+	unsigned pbits;
+	std::queue<size_t> instr;
+	static InstructionDecoder decoder;
+	//template<uint16_t Opcode> friend void instruction(CPU & cpu);
 public:
-	explicit CPU(Memory & memory);
+	CPU(CtrlBus & ctrl, MemBus & bus);
 	void tick();
-private:
-	void impl();
-	uint8_t imm();
-	uint16_t zp();
-	uint16_t zpx();
-	uint16_t zpy();
-	uint16_t rel();
-	uint16_t abs();
-	uint16_t absx();
-	uint16_t absy();
-	uint16_t ind();
-	uint16_t xind();
-	uint16_t indy();
-private:
-	void push(uint8_t val);
-	uint8_t pull();
 
-	void pushw(uint16_t val);
-	uint16_t pullw();
-public:
-	void powerUp();
-	size_t getCycleCount();
+	void fetch();
+	void decode();
+	void execute();
+
+	uint16_t wrap(uint16_t oldaddr, uint16_t newaddr);
+//	void misfire(uint16_t old, uint16_t addr);
+//	uint8_t push(uint8_t data);
+//	uint8_t pop();
+//	uint8_t read(uint16_t address);
+//	uint8_t write(uint16_t address,uint8_t data);
 };

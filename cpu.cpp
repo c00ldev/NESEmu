@@ -1,1011 +1,213 @@
 #include "cpu.h"
 
-#include "instructions.h"
+#include "ctrl_bus.h"
+#include "mem_bus.h"
 
-#include <queue>
 
-#include "log.h"
+InstructionDecoder CPU::decoder;
 
-#include <thread>
-
-CPU::CPU(Memory & memory)
-	: memory(memory)
+CPU::CPU(CtrlBus & ctrl, MemBus & bus)
+	: ctrl(ctrl)
+	, bus(bus)
 	, A(0)
 	, X(0), Y(0)
 	, PC(0)
 	, S(0)
 	, P(0b00100000)
-	, cycles(0)
-	, start(clock_type::now())
+	, opcode(0)
+	, addr(0)
+	, d(0)
+	, t(0)
+	, c(0)
+	, sb(0)
+	, pbits(0)
+	, instr()
 {
 }
 
 void CPU::tick()
 {
-//	if (cycles)
-//	{
-//		--cycles;
-//		return;
-//	}
-	cycles += 2;
-	uint8_t opcode = memory.read(PC++);
-	uint16_t addr = 0;
-	uint8_t temp = 0;
-	Log(std::hex);
-	switch (opcode)
+	if (instr.empty())
 	{
-	case 0x00:	// BRK
-		Log("BRK ");
-		cycles += 2;
-		pushw(PC);
-		push(P);
-		PCL = memory.read(0xFFFE);
-		PCH = memory.read(0xFFFF);
-		B = true;
-		break;
-
-		// ORA
-	case 0x01:
-		Log("ORA ");
-		OP_ORA(A, memory.read(xind()), P);
-		break;
-	case 0x05:
-		Log("ORA ");
-		OP_ORA(A, memory.read(zp()), P);
-		break;
-	case 0x09:
-		Log("ORA ");
-		OP_ORA(A, imm(), P);
-		break;
-	case 0x0D:
-		Log("ORA ");
-		OP_ORA(A, memory.read(abs()), P);
-		break;
-	case 0x11:
-		Log("ORA ");
-		OP_ORA(A, memory.read(indy()), P);
-		break;
-	case 0x15:
-		Log("ORA ");
-		OP_ORA(A, memory.read(zpx()), P);
-		break;
-	case 0x19:
-		Log("ORA ");
-		OP_ORA(A, memory.read(absy()), P);
-		break;
-	case 0x1D:
-		Log("ORA ");
-		OP_ORA(A, memory.read(absx()), P);
-		break;
-
-		// ASL
-	case 0x06:
-		Log("ASL ");
-		cycles += 2;
-		addr = zp();
-		temp = memory.read(addr);
-		OP_ASL(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x0A:
-		Log("ASL ");
-		OP_ASL(A, P);
-		break;
-	case 0x0E:
-		Log("ASL ");
-		cycles += 2;
-		addr = abs();
-		temp = memory.read(addr);
-		OP_ASL(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x16:
-		Log("ASL ");
-		cycles += 2;
-		addr = zpx();
-		temp = memory.read(addr);
-		OP_ASL(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x1E:
-		Log("ASL ");
-		addr = absx();
-		cycles = 7;
-		temp = memory.read(addr);
-		OP_ASL(temp, P);
-		memory.write(addr, temp);
-		break;
-
-	case 0x20:	// JSR
-		Log("JSR ");
-		pushw(PC + uint16_t(2));
-		PC = abs();
-		break;
-
-		// AND
-	case 0x21:
-		Log("AND ");
-		OP_AND(A, memory.read(xind()), P);
-		break;
-	case 0x25:
-		Log("AND ");
-		OP_AND(A, memory.read(zp()), P);
-		break;
-	case 0x29:
-		Log("AND ");
-		OP_AND(A, imm(), P);
-		break;
-	case 0x2D:
-		Log("AND ");
-		OP_AND(A, memory.read(abs()), P);
-		break;
-	case 0x31:
-		Log("AND ");
-		OP_AND(A, memory.read(indy()), P);
-		break;
-	case 0x35:
-		Log("AND ");
-		OP_AND(A, memory.read(zpx()), P);
-		break;
-	case 0x39:
-		Log("AND ");
-		OP_AND(A, memory.read(absy()), P);
-		break;
-	case 0x3D:
-		Log("AND ");
-		OP_AND(A, memory.read(absx()), P);
-		break;
-
-		// BIT
-	case 0x24:
-		Log("BIT ");
-		OP_BIT(A, memory.read(zp()), P);
-		break;
-	case 0x2C:
-		Log("BIT ");
-		OP_BIT(A, memory.read(abs()), P);
-		break;
-
-	case 0x08:	// PHP
-		Log("PHP ");
-		push(P);
-		break;
-	case 0x28:	// PLP
-		Log("PLP ");
-		P = pull();
-		break;
-	case 0x48:	// PHA
-		Log("PHA ");
-		push(A);
-		break;
-	case 0x68:	// PLA
-		Log("PLA ");
-		A = pull();
-		break;
-
-	case 0x40:	// RTI
-		Log("RTI ");
-		cycles -= 2;
-		P = pull();
-		PC = pullw();
-		break;
-	case 0x60:	// RTS
-		Log("RTS ");
-		PC = pullw();
-		++PC;
-		break;
-
-		// ROL
-	case 0x26:
-		Log("ROL ");
-		cycles += 2;
-		addr = zp();
-		temp = memory.read(addr);
-		OP_ROL(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x2A:
-		Log("ROL ");
-		OP_ROL(A, P);
-		break;
-	case 0x2E:
-		Log("ROL ");
-		cycles += 2;
-		addr = abs();
-		temp = memory.read(addr);
-		OP_ROL(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x36:
-		Log("ROL ");
-		cycles += 2;
-		addr = zpx();
-		temp = memory.read(addr);
-		OP_ROL(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x3E:
-		Log("ROL ");
-		addr = absx();
-		cycles = 7;
-		temp = memory.read(addr);
-		OP_ROL(temp, P);
-		memory.write(addr, temp);
-		break;
-
-		// EOR
-	case 0x41:
-		Log("EOR ");
-		OP_EOR(A, memory.read(xind()), P);
-		break;
-	case 0x45:
-		Log("EOR ");
-		OP_EOR(A, memory.read(zp()), P);
-		break;
-	case 0x49:
-		Log("EOR ");
-		OP_EOR(A, imm(), P);
-		break;
-	case 0x4D:
-		Log("EOR ");
-		OP_EOR(A, memory.read(abs()), P);
-		break;
-	case 0x51:
-		Log("EOR ");
-		OP_EOR(A, memory.read(indy()), P);
-		break;
-	case 0x55:
-		Log("EOR ");
-		OP_EOR(A, memory.read(zpx()), P);
-		break;
-	case 0x59:
-		Log("EOR ");
-		OP_EOR(A, memory.read(absy()), P);
-		break;
-	case 0x5D:
-		Log("EOR ");
-		OP_EOR(A, memory.read(absx()), P);
-		break;
-
-		// LSR
-	case 0x46:
-		Log("LSR ");
-		cycles += 2;
-		addr = zp();
-		temp = memory.read(addr);
-		OP_LSR(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x4A:
-		Log("LSR ");
-		OP_LSR(A, P);
-		break;
-	case 0x4E:
-		Log("LSR ");
-		cycles += 2;
-		addr = abs();
-		temp = memory.read(addr);
-		OP_LSR(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x56:
-		Log("LSR ");
-		cycles += 2;
-		addr = zpx();
-		temp = memory.read(addr);
-		OP_LSR(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x5E:
-		Log("LSR ");
-		addr = absx();
-		cycles = 7;
-		temp = memory.read(addr);
-		OP_LSR(temp, P);
-		memory.write(addr, temp);
-		break;
-
-		// ADC
-	case 0x61:
-		Log("ADC ");
-		OP_ADC(A, memory.read(xind()), P);
-		break;
-	case 0x65:
-		Log("ADC ");
-		OP_ADC(A, memory.read(zp()), P);
-		break;
-	case 0x69:
-		Log("ADC ");
-		OP_ADC(A, imm(), P);
-		break;
-	case 0x6D:
-		Log("ADC ");
-		OP_ADC(A, memory.read(abs()), P);
-		break;
-	case 0x71:
-		Log("ADC ");
-		OP_ADC(A, memory.read(indy()), P);
-		break;
-	case 0x75:
-		Log("ADC ");
-		OP_ADC(A, memory.read(zpx()), P);
-		break;
-	case 0x79:
-		Log("ADC ");
-		OP_ADC(A, memory.read(absy()), P);
-		break;
-	case 0x7D:
-		Log("ADC ");
-		OP_ADC(A, memory.read(absx()), P);
-		break;
-
-		// ROR
-	case 0x66:
-		Log("ROR ");
-		cycles += 2;
-		addr = zp();
-		temp = memory.read(addr);
-		OP_ROR(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x6A:
-		Log("ROR ");
-		OP_ROR(A, P);
-		break;
-	case 0x6E:
-		Log("ROR ");
-		cycles += 2;
-		addr = abs();
-		temp = memory.read(addr);
-		OP_ROR(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x76:
-		Log("ROR ");
-		cycles += 2;
-		addr = zpx();
-		temp = memory.read(addr);
-		OP_ROR(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0x7E:
-		Log("ROR ");
-		addr = absx();
-		cycles = 7;
-		temp = memory.read(addr);
-		OP_ROR(temp, P);
-		memory.write(addr, temp);
-		break;
-
-		// STA
-	case 0x81:
-		Log("STA ");
-		memory.write(xind(), A);
-		break;
-	case 0x85:
-		Log("STA ");
-		memory.write(zp(), A);
-		break;
-	case 0x8D:
-		Log("STA ");
-		memory.write(abs(), A);
-		break;
-	case 0x91:
-		Log("STA ");
-		memory.write(indy(), A);
-		cycles = 6;
-		break;
-	case 0x95:
-		Log("STA ");
-		memory.write(zpx(), A);
-		break;
-	case 0x99:
-		Log("STA ");
-		memory.write(absy(), A);
-		cycles = 5;
-		break;
-	case 0x9D:
-		Log("STA ");
-		memory.write(absx(), A);
-		cycles = 5;
-		break;
-
-		// STX
-	case 0x86:
-		Log("STX ");
-		memory.write(zp(), X);
-		break;
-	case 0x8E:
-		Log("STX ");
-		memory.write(abs(), X);
-		break;
-	case 0x96:
-		Log("STX ");
-		memory.write(zpy(), X);
-		break;
-
-		// STY
-	case 0x84:
-		Log("STY ");
-		memory.write(zp(), Y);
-		break;
-	case 0x8C:
-		Log("STY ");
-		memory.write(abs(), Y);
-		break;
-	case 0x94:
-		Log("STY ");
-		memory.write(zpx(), Y);
-		break;
-
-		// JMP
-	case 0x4C:
-		Log("JMP ");
-		PC = abs();
-		cycles -= 1;
-		break;
-	case 0x6C:
-		Log("JMP ");
-		PC = ind();
-		break;
-
-		// LDA
-	case 0xA1:
-		Log("LDA ");
-		OP_LD(A, memory.read(xind()), P);
-		break;
-	case 0xA5:
-		Log("LDA ");
-		OP_LD(A, memory.read(zp()), P);
-		break;
-	case 0xA9:
-		Log("LDA ");
-		OP_LD(A, imm(), P);
-		break;
-	case 0xAD:
-		Log("LDA ");
-		OP_LD(A, memory.read(abs()), P);
-		break;
-	case 0xB1:
-		Log("LDA ");
-		OP_LD(A, memory.read(indy()), P);
-		break;
-	case 0xB5:
-		Log("LDA ");
-		OP_LD(A, memory.read(zpx()), P);
-		break;
-	case 0xB9:
-		Log("LDA ");
-		OP_LD(A, memory.read(absy()), P);
-		break;
-	case 0xBD:
-		Log("LDA ");
-		OP_LD(A, memory.read(absx()), P);
-		break;
-
-		// LDX
-	case 0xA2:
-		Log("LDX ");
-		OP_LD(X, imm(), P);
-		break;
-	case 0xA6:
-		Log("LDX ");
-		OP_LD(X, memory.read(zp()), P);
-		break;
-	case 0xAE:
-		Log("LDX ");
-		OP_LD(X, memory.read(abs()), P);
-		break;
-	case 0xB6:
-		Log("LDX ");
-		OP_LD(X, memory.read(zpy()), P);
-		break;
-	case 0xBE:
-		Log("LDX ");
-		OP_LD(X, memory.read(absy()), P);
-		break;
-
-		// LDY
-	case 0xA0:
-		Log("LDY ");
-		OP_LD(Y, imm(), P);
-		break;
-	case 0xA4:
-		Log("LDY ");
-		OP_LD(Y, memory.read(zp()), P);
-		break;
-	case 0xAC:
-		Log("LDY ");
-		OP_LD(Y, memory.read(abs()), P);
-		break;
-	case 0xB4:
-		Log("LDY ");
-		OP_LD(Y, memory.read(zpx()), P);
-		break;
-	case 0xBC:
-		Log("LDY ");
-		OP_LD(Y, memory.read(absx()), P);
-		break;
-
-		// CMP
-	case 0xC1:
-		Log("CMP ");
-		OP_CMP(A, memory.read(xind()), P);
-		break;
-	case 0xC5:
-		Log("CMP ");
-		OP_CMP(A, memory.read(zp()), P);
-		break;
-	case 0xC9:
-		Log("CMP ");
-		OP_CMP(A, imm(), P);
-		break;
-	case 0xCD:
-		Log("CMP ");
-		OP_CMP(A, memory.read(abs()), P);
-		break;
-	case 0xD1:
-		Log("CMP ");
-		OP_CMP(A, memory.read(indy()), P);
-		break;
-	case 0xD5:
-		Log("CMP ");
-		OP_CMP(A, memory.read(zpx()), P);
-		break;
-	case 0xD9:
-		Log("CMP ");
-		OP_CMP(A, memory.read(absy()), P);
-		break;
-	case 0xDD:
-		Log("CMP ");
-		OP_CMP(A, memory.read(absx()), P);
-		break;
-
-		// CPX
-	case 0xE0:
-		Log("CPX ");
-		OP_CMP(X, imm(), P);
-		break;
-	case 0xE4:
-		Log("CPX ");
-		OP_CMP(X, memory.read(zp()), P);
-		break;
-	case 0xEC:
-		Log("CPX ");
-		OP_CMP(X, memory.read(abs()), P);
-		break;
-
-	case 0xEA:	// NOP
-		Log("NOP ");
-		impl();
-		break;
-
-		// CPY
-	case 0xC0:
-		Log("CPY ");
-		OP_CMP(Y, imm(), P);
-		break;
-	case 0xC4:
-		Log("CPY ");
-		OP_CMP(Y, memory.read(zp()), P);
-		break;
-	case 0xCC:
-		Log("CPY ");
-		OP_CMP(Y, memory.read(abs()), P);
-		break;
-
-		// DEC
-	case 0x88:	// DEY
-		Log("DEY ");
-		OP_DEC((impl(), Y), P);
-		break;
-	case 0xC6:
-		Log("DEC ");
-		cycles += 2;
-		addr = zp();
-		temp = memory.read(addr);
-		OP_DEC(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0xCA:	// DEX
-		Log("DEX ");
-		OP_DEC((impl(), X), P);
-		break;
-	case 0xCE:
-		Log("DEC ");
-		cycles += 2;
-		addr = abs();
-		temp = memory.read(addr);
-		OP_DEC(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0xD6:
-		Log("DEC ");
-		cycles += 2;
-		addr = zpx();
-		temp = memory.read(addr);
-		OP_DEC(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0xDE:
-		Log("DEC ");
-		addr = absx();
-		cycles = 7;
-		temp = memory.read(addr);
-		OP_DEC(temp, P);
-		memory.write(addr, temp);
-		break;
-
-		// INC
-	case 0xC8:	// INY
-		Log("INY ");
-		OP_INC((impl(), Y), P);
-		break;
-	case 0xE6:
-		Log("DEC ");
-		cycles += 2;
-		addr = zp();
-		temp = memory.read(addr);
-		OP_INC(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0xE8:	// INX
-		Log("INX ");
-		OP_INC((impl(), X), P);
-		break;
-	case 0xEE:
-		Log("DEC ");
-		cycles += 2;
-		addr = abs();
-		temp = memory.read(addr);
-		OP_INC(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0xF6:
-		Log("DEC ");
-		cycles += 2;
-		addr = zpx();
-		temp = memory.read(addr);
-		OP_INC(temp, P);
-		memory.write(addr, temp);
-		break;
-	case 0xFE:
-		Log("DEC ");
-		addr = absx();
-		cycles = 7;
-		temp = memory.read(addr);
-		OP_INC(temp, P);
-		memory.write(addr, temp);
-		break;
-
-	case 0x10:	// BPL
-		Log("BPL ");
-		if (!N)
-			PC = rel();
-		break;
-	case 0x30:	// BMI
-		Log("BMI ");
-		if (N)
-			PC = rel();
-		break;
-	case 0x50:	// BVC
-		Log("BVC ");
-		if (!V)
-			PC = rel();
-		break;
-	case 0x70:	// BVS
-		Log("BVS ");
-		if (V)
-			PC = rel();
-		break;
-	case 0x90:	// BCC
-		Log("BCC ");
-		if (!C)
-			PC = rel();
-		break;
-	case 0xB0:	// BCS
-		Log("BCS ");
-		if (C)
-			PC = rel();
-		break;
-	case 0xD0:	// BNE
-		Log("BNE ");
-		if (!Z)
-			PC = rel();
-		break;
-	case 0xF0:	// BEQ
-		Log("BEQ ");
-		if (Z)
-			PC = rel();
-		break;
-
-	case 0x18:	// CLC
-		Log("CLC ");
-		C = (impl(), false);
-		break;
-	case 0x58:	// CLI
-		Log("CLI ");
-		I = (impl(), false);
-		break;
-	case 0xB8:	// CLV
-		Log("CLV ");
-		V = (impl(), false);
-		break;
-	case 0xD8:	// CLD
-		Log("CLD ");
-		D = (impl(), false);
-		break;
-
-	case 0x38:	// SEC
-		Log("SEC ");
-		(impl(), C) = true;
-		break;
-	case 0x78:	// SEI
-		Log("SEI ");
-		(impl(), I) = true;
-		break;
-	case 0xF8:	// SED
-		Log("SED ");
-		(impl(), D) = true;
-		break;
-
-	case 0x8A:	// TXA
-		Log("TXA ");
-		impl();
-		OP_LD(A, X, P);
-		break;
-	case 0x98:	// TYA
-		Log("TYA ");
-		impl();
-		OP_LD(A, Y, P);
-		break;
-	case 0x9A:	// TXS
-		Log("TXS ");
-		impl();
-		OP_LD(S, X, P);
-		break;
-
-	case 0xA8:	// TAY
-		Log("TAY ");
-		impl();
-		OP_LD(Y, A, P);
-		break;
-	case 0xAA:	// TAX
-		Log("TAX ");
-		impl();
-		OP_LD(X, A, P);
-		break;
-	case 0xBA:	// TSX
-		Log("TSX ");
-		impl();
-		OP_LD(X, S, P);
-		break;
-
-		// SBC
-	case 0xE1:
-		Log("SBC ");
-		OP_SBC(A, memory.read(xind()), P);
-		break;
-	case 0xE5:
-		Log("SBC ");
-		OP_SBC(A, memory.read(zp()), P);
-		break;
-	case 0xE9:
-		Log("SBC ");
-		OP_SBC(A, imm(), P);
-		break;
-	case 0xED:
-		Log("SBC ");
-		OP_SBC(A, memory.read(abs()), P);
-		break;
-	case 0xF1:
-		Log("SBC ");
-		OP_SBC(A, memory.read(indy()), P);
-		break;
-	case 0xF5:
-		Log("SBC ");
-		OP_SBC(A, memory.read(zpx()), P);
-		break;
-	case 0xF9:
-		Log("SBC ");
-		OP_SBC(A, memory.read(absy()), P);
-		break;
-	case 0xFD:
-		Log("SBC ");
-		OP_SBC(A, memory.read(absx()), P);
-		break;
-
-	default:
-		break;
+		fetch();
+		decode();
 	}
-	Log(std::endl);
-	for (size_t i = 0; i < cycles; ++i)
+	execute();
+}
+
+void CPU::fetch()
+{
+	if (ctrl.reset)
 	{
-		// ppu.tick()
-		// ppu.tick()
-		// ppu.tick()
+		opcode = 0x101;
+		return;
 	}
-	std::chrono::duration<long double, std::ratio<1, 1>> dur(12.0 / 21477272.0);
-	auto dur1 = std::chrono::duration_cast<clock_type::duration>(dur);
-	std::this_thread::sleep_until(start + dur1 * cycles);
-	start += dur1 * cycles;
-}
-
-union addr_t
-{
-	uint16_t addr;
-	struct
+	if (ctrl.nmi && !ctrl.nmiEdge)
 	{
-		uint8_t low;
-		uint8_t high;
-	};
-};
-
-void CPU::impl()
-{
-	cycles += 0;
+		opcode = 0x100;
+		ctrl.nmiEdge = true;
+		return;
+	}
+	if (ctrl.interrupt & !I)
+	{
+		opcode = 0x102;
+		return;
+	}
+	instr.push(57);
+	instr.push(65);
+	instr.push(0);
+	instr.push(71);
+	instr.push(66);
+	while (!instr.empty())
+		execute();
 }
 
-uint8_t CPU::imm()
+void CPU::decode()
 {
-	cycles += 0;
-	uint8_t res = memory.read(PC++);
-	Log("#$" << (signed)res);
-	return res;
+	if (!ctrl.nmi)
+		ctrl.nmiEdge = false;
+	addr = 0;
+	d = 0;
+	t = 0xFF;
+	c = 0;
+	sb = 0;
+	pbits = opcode < 0x100 ? 0x30 : 0x20;
+	for (size_t ins : InstructionDecoder::instructions[opcode])
+		instr.push(ins);
 }
 
-uint16_t CPU::zp()
+void CPU::execute()
 {
-	cycles += 1;
-	uint8_t res = memory.read(PC++);
-	Log("$" << (signed)res);
-	return res;
+	while (!instr.empty())
+	{
+		size_t i = instr.front();
+		instr.pop();
+#define t(n,code) case n: code; break;
+		switch (i)
+		{
+		case 0: return;
+			/* Decode address operand */
+		t(1, addr = 0xFFFA) // NMI vector location
+		t(2, addr = 0xFFFC) // Reset vector location
+		t(3, addr = 0xFFFE) // Interrupt vector location
+		t(5, d = X) // register index
+		t(6, d = Y)
+		t(7, addr=uint8_t(addr+d); d=0)              // add zeropage-index
+		t(8, addr=uint8_t(addr))       // absolute address
+//		t(10, misfire(addr, addr+d)) // abs. load: extra misread when cross-page
+			/* Load source operand */
+		t(12, t &= A) // Many operations take A or X as operand. Some try in
+		t(13, t &= X) // error to take both; the outcome is an AND operation.
+		t(14, t &= Y) // sty,dey,iny,tya,cpy
+		t(15, t &= S) // tsx, las
+		t(16, t &= P|pbits; c = t)// php, flag test/set/clear, interrupts
+		t(17, c = t; t = 0xFF)        // save as second operand
+			/* Operations that mogrify memory operands directly */
+		t(20, V = t & 0x40; N = t & 0x80) // bit
+		t(21, sb = C)       // rol,rla, ror,rra,arr
+		t(22, C = t & 0x80) // rol,rla, asl,slo,[arr,anc]
+		t(23, C = t & 0x01) // lsr,sre, ror,rra,asr
+		t(24, t = (t << 1) | (sb * 0x01))
+		t(25, t = (t >> 1) | (sb * 0x80))
+		t(26, t = uint8_t(t - 1))  // dec,dex,dey,dcp
+		t(27, t = uint8_t(t + 1))  // inc,inx,iny,isb
+			/* Stack operations and unconditional jumps */
+//		t(31, waitTick(); t = pop())                        // pla,plp,rti
+//		t(32, read(PC++); PC = pop(); PC |= (pop() << 8)) // rti,rts
+//		t(34, d = PC + (opcode ? -1 : 1); push(d>>8); push(d))      // jsr, interrupts
+		t(35, PC = addr) // jmp, jsr, interrupts
+//		t(36, push(t))   // pha, php, interrupts
+			/* Bitmasks */
+		t(37, t = 1)
+		t(38, t <<= 1)
+		t(39, t <<= 2)
+		t(40, t <<= 4)
+		t(41, t = uint8_t(~t)) // sbc, isb,      clear flag
+		t(42, t = c | t)  // ora, slo,      set flag
+		t(43, t = c & t)  // and, bit, rla, clear/test flag
+		t(44, t = c ^ t)  // eor, sre
+			/* Conditional branches */
+//		t(45, if(t)  { waitTick(); misfire(PC, addr = int8_t(addr) + PC); PC=addr; })
+//		t(46, if(!t) { waitTick(); misfire(PC, addr = int8_t(addr) + PC); PC=addr; })
+			/* Addition and subtraction */
+		t(47, c = t; t += A + C; V = (c^t) & (A^t) & 0x80; C = t & 0x100)
+		t(48, t = c - t; C = ~t & 0x100) // cmp,cpx,cpy, dcp, sbx
+			/* Store modified value (register) */
+		t(49, A = t)
+		t(50, X = t) // ldx, dex, tax, inx, tsx,lax,las,sbx
+		t(51, Y = t) // ldy, dey, tay, iny
+		t(52, S = t) // txs, las, shs
+		t(53, P = t & ~0x30) // plp, rti, flag set/clear
+			/* Generic status flag updates */
+		t(54, N = t & 0x80)
+		t(55, Z = uint8_t(t) == 0)
+		t(56, V = (((t >> 5)+1)&2))         // [arr]
+
+
+			/* Memory microinstructions */
+		t(57, bus.address = PC++)
+		t(58, bus.address = c = addr)
+		t(59, bus.address = wrap(c,c+1))
+		t(60, bus.address = wrap(addr, addr+d))
+		t(61, bus.address = addr+d)
+
+		t(62, addr = bus.data)
+		t(63, addr += 256 * bus.data)
+		t(64, t &= bus.data)
+
+		t(65, bus.enable = true)
+		t(66, bus.enable = false)
+		t(67, bus.write = true)
+		t(68, bus.write = false)
+
+		t(69, bus.data = t)
+		t(70, bus.data = t &= ((addr+d) >> 8))
+
+		t(71, opcode = bus.data)
+
+		}
+#undef t
+	}
+	ctrl.reset = false;
 }
 
-uint16_t CPU::zpx()
+uint16_t CPU::wrap(uint16_t oldaddr, uint16_t newaddr)
 {
-	cycles += 2;
-	uint8_t res = memory.read(PC++) + X;
-	Log("$" << (signed)res << ",X");
-	return res;
+	return (oldaddr & uint16_t(0xFF00)) + uint8_t(newaddr);
 }
 
-uint16_t CPU::zpy()
-{
-	cycles += 2;
-	uint8_t res = memory.read(PC++) + Y;
-	Log("$" << (signed)res << ",Y");
-	return res;
-}
-
-uint16_t CPU::rel()
-{
-	cycles += 0;
-	int8_t offset = memory.read(PC++);
-	if (offset < 0)
-		Log("$-" << (signed)-offset);
-	else
-		Log("$" << (signed)offset);
-	addr_t addr1{};
-	addr1.addr = PC;
-	addr1.low += offset;
-	if (PC + offset != addr1.addr)
-		cycles += 1;
-	return PC + offset;
-}
-
-uint16_t CPU::abs()
-{
-	cycles += 2;
-	addr_t addr{};
-	addr.low = memory.read(PC++);
-	addr.high = memory.read(PC++);
-	Log("$" << (signed)addr.addr);
-	return addr.addr;
-}
-
-uint16_t CPU::absx()
-{
-	cycles += 2;
-	addr_t addr{};
-	addr.low = memory.read(PC++);
-	addr.high = memory.read(PC++);
-	addr_t addr1 = addr;
-	addr1.low += X;
-	if (addr.addr + X != addr1.addr)
-		cycles += 1;
-	Log("$" << (signed)addr.addr << ",X");
-	return addr.addr + X;
-}
-
-uint16_t CPU::absy()
-{
-	cycles += 2;
-	addr_t addr{};
-	addr.low = memory.read(PC++);
-	addr.high = memory.read(PC++);
-	addr_t addr1 = addr;
-	addr1.low += Y;
-	if (addr.addr + Y != addr1.addr)
-		cycles += 1;
-	Log("$" << (signed)addr.addr << ",Y");
-	return addr.addr + Y;
-}
-
-uint16_t CPU::ind()
-{
-	cycles += 3;
-	addr_t addr{};
-	addr_t addr0{};
-	addr0.low = memory.read(PC++);
-	addr0.high = memory.read(PC++);
-	Log("($" << (signed)addr0.addr << ")");
-	addr.low = memory.read(addr0.addr++);
-	addr.high = memory.read(addr0.addr);
-	return addr.addr;
-}
-
-uint16_t CPU::xind()
-{
-	cycles += 4;
-	uint8_t arg = memory.read(PC++);
-	Log("($" << (signed)arg << ",X)");
-	addr_t addr{};
-	addr.low = memory.read(uint8_t(arg + X));
-	addr.high = memory.read(uint8_t(arg + X + 1));
-	return addr.addr;
-}
-
-uint16_t CPU::indy()
-{
-	cycles += 3;
-	uint8_t arg = memory.read(PC++);
-	Log("($" << (signed)arg << "),Y");
-	addr_t addr{};
-	addr.low = memory.read(uint8_t(arg));
-	addr.high = memory.read(uint8_t(arg + 1));
-	addr_t addr1 = addr;
-	addr1.low += Y;
-	if (addr.addr + Y != addr1.addr)
-		cycles += 1;
-	return addr.addr + Y;
-}
-
-void CPU::push(uint8_t val)
-{
-	cycles += 1;
-	memory.write(uint16_t(0x100) + (--(impl(), S)), val);
-}
-
-uint8_t CPU::pull()
-{
-	cycles += 2;
-	return memory.read(uint16_t(0x100) + ((impl(), S)++));
-}
-
-void CPU::pushw(uint16_t val)
-{
-	addr_t addr{};
-	addr.addr = val;
-	push(addr.high);
-	push(addr.low);
-}
-
-uint16_t CPU::pullw()
-{
-	addr_t addr{};
-	addr.low = pull();
-	addr.high = pull();
-	return addr.addr;
-}
-
-void CPU::powerUp()
-{
-	PCL = memory.read(0xFFFC);
-	PCH = memory.read(0xFFFD);
-}
-
-size_t CPU::getCycleCount()
-{
-	return 1;
-}
+//void CPU::misfire(uint16_t old, uint16_t addr)
+//{
+//	if (uint16_t q = wrap(old, addr); q != addr)
+//		read(q);
+//}
+//
+//uint8_t CPU::push(uint8_t data)
+//{
+//	return write(uint16_t(0x100) | S--, data);
+//}
+//
+//uint8_t CPU::pop()
+//{
+//	return read(uint16_t(0x100) | ++S);
+//}
+//
+//uint8_t CPU::read(uint16_t address)
+//{
+//	bus.address = address;
+//	bus.enable = true;
+//	waitTick();
+//	return bus.data;
+//}
+//
+//uint8_t CPU::write(uint16_t address, uint8_t data)
+//{
+////	if (reset)
+////		return read(address);
+//	bus.address = address;
+//	bus.data = data;
+//	bus.write = true;
+//	bus.enable = true;
+//	waitTick();
+//	return bus.data;
+//}
