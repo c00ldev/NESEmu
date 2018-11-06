@@ -26,7 +26,7 @@ int main()
 //		std::cout << "\n";
 //	}
 
-	while (true)
+	for (;;)
 		nes.run();
 
 //	uint8_t a = nes.mmu.read(0x4020);

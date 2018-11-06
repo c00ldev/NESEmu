@@ -8,7 +8,7 @@ NES::NES()
 	, vram(0x800)
 	, cpu(mem)
 	, ppu(vmem)
-	, cartridgeSlot(nullptr)
+	, cartridgeSlot()
 	, mem(ram, ppu.getRegs(), ram, cartridgeSlot.getPRG(), cartridgeSlot.getEXP())
 	, vmem(cartridgeSlot.getCHR(), NullMemory::nullMemory, NullMemory::nullMemory, NullMemory::nullMemory, NullMemory::nullMemory, ppu.getPalettes())
 {
