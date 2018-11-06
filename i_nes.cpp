@@ -40,7 +40,7 @@ void iNES::load(const std::string & is)
 	std::vector<uint8_t> CHR_ROM(chrROM_size * 8_KiB);
 	fin.read((char *)&CHR_ROM[0], CHR_ROM.size());
 
-	size_t mapper = 0;
+	size_t mapper = (header.mapperUpper << 4u) | header.mapperLower;
 
 	switch (mapper)
 	{
