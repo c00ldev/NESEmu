@@ -4,8 +4,6 @@
 #include <cstddef>
 #include <queue>
 
-#include "instruction_decoder.h"
-
 class CtrlBus;
 class MemBus;
 
@@ -49,7 +47,7 @@ class CPU
 	unsigned sb;
 	unsigned pbits;
 	std::queue<size_t> instr;
-	static InstructionDecoder decoder;
+	bool fetched;
 	//template<uint16_t Opcode> friend void instruction(CPU & cpu);
 public:
 	CPU(CtrlBus & ctrl, MemBus & bus);

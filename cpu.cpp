@@ -2,9 +2,8 @@
 
 #include "ctrl_bus.h"
 #include "mem_bus.h"
+#include "instruction_decoder.h"
 
-
-InstructionDecoder CPU::decoder;
 
 CPU::CPU(CtrlBus & ctrl, MemBus & bus)
 	: ctrl(ctrl)
@@ -22,21 +21,26 @@ CPU::CPU(CtrlBus & ctrl, MemBus & bus)
 	, sb(0)
 	, pbits(0)
 	, instr()
+	, fetched(false)
 {
 }
 
 void CPU::tick()
 {
-	if (instr.empty())
-	{
-		fetch();
-		decode();
-	}
+	fetch();
+	if (!ctrl.nmi)
+		ctrl.nmiEdge = false;
+	decode();
 	execute();
+	ctrl.reset = false;
 }
 
 void CPU::fetch()
 {
+	if (!instr.empty())
+		return;
+	if (fetched)
+		return;
 	if (ctrl.reset)
 	{
 		opcode = 0x101;
@@ -58,14 +62,13 @@ void CPU::fetch()
 	instr.push(0);
 	instr.push(71);
 	instr.push(66);
-	while (!instr.empty())
-		execute();
+	fetched = true;
 }
 
 void CPU::decode()
 {
-	if (!ctrl.nmi)
-		ctrl.nmiEdge = false;
+	if (!instr.empty())
+		return;
 	addr = 0;
 	d = 0;
 	t = 0xFF;
@@ -74,6 +77,7 @@ void CPU::decode()
 	pbits = opcode < 0x100 ? 0x30 : 0x20;
 	for (size_t ins : InstructionDecoder::instructions[opcode])
 		instr.push(ins);
+	fetched = false;
 }
 
 void CPU::execute()
@@ -94,7 +98,6 @@ void CPU::execute()
 		t(6, d = Y)
 		t(7, addr=uint8_t(addr+d); d=0)              // add zeropage-index
 		t(8, addr=uint8_t(addr))       // absolute address
-//		t(10, misfire(addr, addr+d)) // abs. load: extra misread when cross-page
 			/* Load source operand */
 		t(12, t &= A) // Many operations take A or X as operand. Some try in
 		t(13, t &= X) // error to take both; the outcome is an AND operation.
@@ -112,11 +115,8 @@ void CPU::execute()
 		t(26, t = uint8_t(t - 1))  // dec,dex,dey,dcp
 		t(27, t = uint8_t(t + 1))  // inc,inx,iny,isb
 			/* Stack operations and unconditional jumps */
-//		t(31, waitTick(); t = pop())                        // pla,plp,rti
-//		t(32, read(PC++); PC = pop(); PC |= (pop() << 8)) // rti,rts
-//		t(34, d = PC + (opcode ? -1 : 1); push(d>>8); push(d))      // jsr, interrupts
+		t(34, d = PC + (opcode ? -1 : 1))      // jsr, interrupts
 		t(35, PC = addr) // jmp, jsr, interrupts
-//		t(36, push(t))   // pha, php, interrupts
 			/* Bitmasks */
 		t(37, t = 1)
 		t(38, t <<= 1)
@@ -127,8 +127,8 @@ void CPU::execute()
 		t(43, t = c & t)  // and, bit, rla, clear/test flag
 		t(44, t = c ^ t)  // eor, sre
 			/* Conditional branches */
-//		t(45, if(t)  { waitTick(); misfire(PC, addr = int8_t(addr) + PC); PC=addr; })
-//		t(46, if(!t) { waitTick(); misfire(PC, addr = int8_t(addr) + PC); PC=addr; })
+		t(45, if(!t) { instr.pop(); instr.pop(); instr.pop(); })
+		t(46, if(t) { instr.pop(); instr.pop(); instr.pop(); })
 			/* Addition and subtraction */
 		t(47, c = t; t += A + C; V = (c^t) & (A^t) & 0x80; C = t & 0x100)
 		t(48, t = c - t; C = ~t & 0x100) // cmp,cpx,cpy, dcp, sbx
@@ -165,49 +165,29 @@ void CPU::execute()
 
 		t(71, opcode = bus.data)
 
+		t(72, if (uint16_t q = wrap(addr, addr + d); q != addr) return)
+
+		t(73, bus.address = uint16_t(0x100) | S--)
+		t(74, bus.address = uint16_t(0x100) | ++S)
+
+		t(75, bus.data = d)
+		t(76, bus.data = d >> 8)
+
+		t(77, t = bus.data)
+
+		t(78, PC = bus.data)
+		t(79, PC |= (bus.data << 8))
+
+		t(80, if (uint16_t q = wrap(PC, addr = int8_t(addr) + PC); q != addr) return)
+
+		default: break;
+
 		}
 #undef t
 	}
-	ctrl.reset = false;
 }
 
 uint16_t CPU::wrap(uint16_t oldaddr, uint16_t newaddr)
 {
 	return (oldaddr & uint16_t(0xFF00)) + uint8_t(newaddr);
 }
-
-//void CPU::misfire(uint16_t old, uint16_t addr)
-//{
-//	if (uint16_t q = wrap(old, addr); q != addr)
-//		read(q);
-//}
-//
-//uint8_t CPU::push(uint8_t data)
-//{
-//	return write(uint16_t(0x100) | S--, data);
-//}
-//
-//uint8_t CPU::pop()
-//{
-//	return read(uint16_t(0x100) | ++S);
-//}
-//
-//uint8_t CPU::read(uint16_t address)
-//{
-//	bus.address = address;
-//	bus.enable = true;
-//	waitTick();
-//	return bus.data;
-//}
-//
-//uint8_t CPU::write(uint16_t address, uint8_t data)
-//{
-////	if (reset)
-////		return read(address);
-//	bus.address = address;
-//	bus.data = data;
-//	bus.write = true;
-//	bus.enable = true;
-//	waitTick();
-//	return bus.data;
-//}

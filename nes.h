@@ -8,28 +8,31 @@
 #include "mem_bus.h"
 #include "cartridge_slot.h"
 
+#include <utility>
+
 class NES
 {
 public:
-	CtrlBus ctrl;
-
 	Clock clock;
+
+	CtrlBus ctrl;
 
 	MemBus bus;
 	MemBus vbus;
 
+	CPU cpu;
+	PPU ppu;
+
 	RAM ram;
 	RAM vram;
-
-	CPU cpu;
-	//PPU ppu;
 
 	CartridgeSlot cartridgeSlot;
 public:
 	NES();
-	void powerUp();
-	void run();
-	void setCartridge(Cartridge * cartridge);
+	inline void run() { clock.cycle(); }
+	inline void setCartridge(Cartridge * cartridge) { cartridgeSlot.setCartridge(cartridge); };
 	void memMap();
 	void vmemMap();
+	std::pair<Memory &, uint16_t> resolveCPU(uint16_t address);
+	std::pair<Memory &, uint16_t> resolvePPU(uint16_t address);
 };

@@ -1,13 +1,16 @@
 #pragma once
 
-#include <cstdint>
-
 #include "reg_ptr.h"
 #include "ram.h"
+#include <cstdint>
+
+class CtrlBus;
+class MemBus;
 
 class PPU
 {
-	Memory & memory;
+	CtrlBus & ctrl;
+	MemBus & bus;
 
 	ROM palettes;
 
@@ -53,7 +56,8 @@ class PPU
 
 	RAM OAM;
 public:
-	explicit PPU(Memory & memory);
+	PPU(CtrlBus & ctrl, MemBus & bus);
+	void tick();
 	Memory & getRegs();
 	Memory & getPalettes();
 };

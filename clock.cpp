@@ -24,13 +24,13 @@ Clock::Clock(long double freq)
 
 void Clock::cycle(size_t count)
 {
-	for (size_t i = 0; i < count; ++i)
-	{
+//	for (size_t i = 0; i < count; ++i)
+//	{
 		for (auto & callback : callbacks)
 			if (tick % callback.first == 0)
 				callback.second();
 		++tick;
-	}
+//	}
 	std::this_thread::sleep_until(last += period * count);
 }
 

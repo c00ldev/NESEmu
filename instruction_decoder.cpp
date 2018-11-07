@@ -26,21 +26,21 @@ template<uint16_t Opcode> std::vector<size_t> decode()
 	constexpr unsigned o8 = Opcode / 8u;
 	constexpr unsigned o8m = 1u << (Opcode % 8u);
 
-#define t(s,ins) { constexpr unsigned i = o8m & (s[o8]>90 ? (130+" (),-089<>?BCFGHJLSVWZ[^hlmnxy|}"[s[o8]-94]) \
-					: (s[o8]-" (("[s[o8]/39])); if constexpr (i != 0) combine(res,{ins}); }
+#define t(s,...) { constexpr unsigned i = o8m & (s[o8]>90 ? (130+" (),-089<>?BCFGHJLSVWZ[^hlmnxy|}"[s[o8]-94]) \
+					: (s[o8]-" (("[s[o8]/39])); if constexpr (i != 0) combine(res,{ __VA_ARGS__ }); }
 
 	/* Decode address operand */
 	t("                                !", 1) // NMI vector location
 	t("                                *", 2) // Reset vector location
 	t("!                               ,", 3) // Interrupt vector location
-	t("zy}z{y}zzy}zzy}zzy}zzy}zzy}zzy}z ", ( 57, 65, 0, 62, 66 ))
+	t("zy}z{y}zzy}zzy}zzy}zzy}zzy}zzy}z ", 57, 65, 0, 62, 66)
 	t("2 yy2 yy2 yy2 yy2 XX2 XX2 yy2 yy ", 5) // register index
 	t("  62  62  62  62  om  om  62  62 ", 6)
-	t("2 y 2 y 2 y 2 y 2 y 2 y 2 y 2 y  ", ( 7, 0 ))              // add zeropage-index
-	t(" y z!y z y z y z y z y z y z y z ", ( 8, 57, 65, 0, 63, 66 ))       // absolute address
-	t("3 6 2 6 2 6 286 2 6 2 6 2 6 2 6 /", ( 58, 65, 0, 62, 66, 59, 65, 0, 63, 66 ))// indirect w/ page wrap
-//	t("  *Z  *Z  *Z  *Z      6z  *Z  *Z ", cpu.misfire(addr, addr+d)) // abs. load: extra misread when cross-page
-	t("  4k  4k  4k  4k  6z      4k  4k ", ( 60, 65, 0, 66 ))// abs. store: always issue a misread
+	t("2 y 2 y 2 y 2 y 2 y 2 y 2 y 2 y  ", 7, 0)              // add zeropage-index
+	t(" y z!y z y z y z y z y z y z y z ", 8, 57, 65, 0, 63, 66)       // absolute address
+	t("3 6 2 6 2 6 286 2 6 2 6 2 6 2 6 /", 58, 65, 0, 62, 66, 59, 65, 0, 63, 66)// indirect w/ page wrap
+	t("  *Z  *Z  *Z  *Z      6z  *Z  *Z ", 72) // abs. load: extra misread when cross-page
+	t("  4k  4k  4k  4k  6z      4k  4k ", 60, 65, 0, 66)// abs. store: always issue a misread
 	/* Load source operand */
 	t("aa__ff__ab__,4  ____ -  ____     ", 12) // Many operations take A or X as operand. Some try in
 	t("                knnn     4  99   ", 13) // error to take both; the outcome is an AND operation.
@@ -48,8 +48,8 @@ template<uint16_t Opcode> std::vector<size_t> decode()
 	t("                       4         ", 15) // tsx, las
 	t("!!!!  !!  !!  !!  !   !!  !!  !!/", 16)// php, flag test/set/clear, interrupts
 	t("_^__dc___^__            ed__98   ", 17)        // save as second operand
-	t("vuwvzywvvuwvvuwv    zy|zzywvzywv ", ( 61, 65, 0, 64, 66 )) // memory operand
-	t(",2  ,2  ,2  ,2  -2  -2  -2  -2   ", ( 57, 65, 0, 64, 66 ))   // immediate operand
+	t("vuwvzywvvuwvvuwv    zy|zzywvzywv ", 61, 65, 0, 64, 66) // memory operand
+	t(",2  ,2  ,2  ,2  -2  -2  -2  -2   ", 57, 65, 0, 64, 66)   // immediate operand
 	/* Operations that mogrify memory operands directly */
 	t("    88                           ", 20) // bit
 	t("    nink    nnnk                 ", 21)       // rol,rla, ror,rra,arr
@@ -60,17 +60,17 @@ template<uint16_t Opcode> std::vector<size_t> decode()
 	t("                 !      kink     ", 26)  // dec,dex,dey,dcp
 	t("                         !  khnk ", 27)  // inc,inx,iny,isb
 	/* Store modified value (memory) */
-	t("kgnkkgnkkgnkkgnkzy|J    kgnkkgnk ", ( 61, 69, 67, 65, 0, 68, 66 ))
-	t("                   q             ", ( 60, 70, 67, 65, 0, 68, 66 )) // [shx,shy,shs,sha?]
+	t("kgnkkgnkkgnkkgnkzy|J    kgnkkgnk ", 61, 69, 67, 65, 0, 68, 66)
+	t("                   q             ", 60, 70, 67, 65, 0, 68, 66) // [shx,shy,shs,sha?]
 	/* Some operations used up one clock cycle that we did not account for yet */
 	t("rpstljstqjstrjst - - - -kjstkjst/", 0) // nop,flag ops,inc,dec,shifts,stack,transregister,interrupts
 	/* Stack operations and unconditional jumps */
-//	t("     !  !    !                   ", cpu.waitTick(); t = cpu.pop())                        // pla,plp,rti
-//	t("        !   !                    ", cpu.read(cpu.PC++); cpu.PC = cpu.pop(); cpu.PC |= (cpu.pop() << 8)) // rti,rts
-	t("            !                    ", ( 57, 65, 0, 66 ))  // rts
-//	t("!   !                           /", d = cpu.PC + (Opcode ? -1 : 1); cpu.push(d>>8); cpu.push(d))      // jsr, interrupts
+	t("     !  !    !                   ", 0, 74, 65, 0, 77, 66)                        // pla,plp,rti
+	t("        !   !                    ", 57, 65, 0, 66, 74, 65, 0, 78, 66, 74, 65, 0, 79, 66) // rti,rts
+	t("            !                    ", 57, 65, 0, 66)  // rts
+	t("!   !                           /", 34, 73, 76, 67, 65, 0, 68, 66, 73, 75, 67, 65, 0, 68, 66)      // jsr, interrupts
 	t("!   !    8   8                  /", 35) // jmp, jsr, interrupts
-//	t("!!       !                      /", cpu.push(t))   // pha, php, interrupts
+	t("!!       !                      /", 73, 69, 67, 65, 0, 68, 66)   // pha, php, interrupts
 	/* Bitmasks */
 	t("! !!  !!  !!  !!  !   !!  !!  !!/", 37)
 	t("  !   !                   !!  !! ", 38)
@@ -81,8 +81,8 @@ template<uint16_t Opcode> std::vector<size_t> decode()
 	t("  !!dc`_  !!  !   !   !!  !!  !  ", 43)  // and, bit, rla, clear/test flag
 	t("        _^__                     ", 44)  // eor, sre
 	/* Conditional branches */
-//	t("      !       !       !       !  ", if(t)  { cpu.waitTick(); cpu.misfire(cpu.PC, addr = int8_t(addr) + cpu.PC); cpu.PC=addr; })
-//	t("  !       !       !       !      ", if(!t) { cpu.waitTick(); cpu.misfire(cpu.PC, addr = int8_t(addr) + cpu.PC); cpu.PC=addr; })
+	t("      !       !       !       !  ", 45, 0, 80, 35)
+	t("  !       !       !       !      ", 46, 0, 80, 35)
 	/* Addition and subtraction */
 	t("            _^__            ____ ", 47)
 	t("                        ed__98   ", 48) // cmp,cpx,cpy, dcp, sbx
