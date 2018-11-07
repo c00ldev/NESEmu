@@ -37,7 +37,7 @@ void NES::memMap()
 	if (!bus.enable)
 		return;
 	auto [mem, address] = resolveCPU(bus.address);
-	if (bus.write)
+	if (bus.write && !ctrl.reset)
 		mem.write(address, bus.data);
 	else
 		bus.data = mem.read(address);
